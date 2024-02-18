@@ -166,12 +166,4 @@ func main() {
 	for _, e := range neg_risk {
 		fmt.Println(e)
 	}
-
-	/*
-		prettyJSON, err := json.MarshalIndent(MarketsData, "", "    ")
-		if err != nil {
-			log.Fatalf("Failed to generate pretty print JSON: %s", err)
-		}
-		fmt.Printf("Pretty JSON:\n%s\n", prettyJSON)
-	*/
 }
