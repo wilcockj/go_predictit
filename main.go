@@ -13,6 +13,8 @@ import (
 	"sync"
 )
 
+const MinPercentChange = 0.02
+
 func get_json_response(url string) ([]byte, error) {
 	// Create a new request using http
 	req, err := http.NewRequest("GET", url, nil)
@@ -141,7 +143,7 @@ func GetMessageFromData(neg_risk []NegRiskData) string {
 			// URL: has guaranteed profit:
 			if !GobExists {
 				Message += fmt.Sprintf(fmtstring, e.URL, e.LeastProfit)
-			} else if e.LeastProfit > compare[i].LeastProfit*1.2 || e.LeastProfit < compare[i].LeastProfit*0.8 {
+			} else if e.LeastProfit > compare[i].LeastProfit*(1.0+MinPercentChange) || e.LeastProfit < compare[i].LeastProfit*(1.0-MinPercentChange) {
 				Message += fmt.Sprintf(fmtstring, e.URL, e.LeastProfit)
 			}
 			fmt.Printf(fmtstring, e.URL, e.LeastProfit)
