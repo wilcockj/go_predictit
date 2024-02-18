@@ -128,7 +128,6 @@ func GetNegativeRisk(market Market) NegRiskData {
 	data.URL = market.URL
 	data.LowestNo = lowest_no_price
 	data.HighestNo = max_no_price
-	data.Populated = true
 
 	return data
 }
@@ -166,6 +165,21 @@ func postDataToURL(url string, data string) (string, error) {
 	return string(body), nil
 }
 
+func PostMessageToNtfy(Message string) {
+	url := "https://ntfy.sh/predictitjohn"
+
+	if Message != "" {
+		response, err := postDataToURL(url, Message)
+		if err != nil {
+			fmt.Printf("Error posting data: %s\n", err)
+			return
+		}
+
+		fmt.Printf("Response from server: %s\n", response)
+	}
+
+}
+
 // fileExists checks if a file exists and is not a directory before we
 // try using it to prevent further errors.
 func fileExists(filename string) bool {
@@ -176,6 +190,46 @@ func fileExists(filename string) bool {
 		}
 	}
 	return !info.IsDir()
+}
+
+func GetMessageFromData(neg_risk []NegRiskData) string {
+	var compare []NegRiskData
+	GobExists := false
+	if fileExists("neg_risk.gob") {
+		GobExists = true
+		file, err := os.Open("neg_risk.gob")
+		if err != nil {
+			log.Printf("Failed to open file: %v", err)
+		}
+		defer file.Close()
+
+		// Create a new gob decoder.
+		decoder := gob.NewDecoder(file)
+
+		// Create a variable to hold the decoded data.
+
+		// Decode the data into the variable.
+		if err := decoder.Decode(&compare); err != nil {
+			log.Printf("Failed to decode: %v", err)
+			GobExists = false // failed to read gob
+		}
+	}
+
+	var Message string
+
+	for i, e := range neg_risk {
+		fmt.Println(e)
+		if e.LeastProfit > 0 {
+			// URL: has guaranteed profit:
+			if !GobExists {
+				Message += fmt.Sprintf("URL: %s has guaranteed profit: %f\n", e.URL, e.LeastProfit)
+			} else if e.LeastProfit > compare[i].LeastProfit*1.2 || e.LeastProfit < compare[i].LeastProfit*0.8 {
+				Message += fmt.Sprintf("URL: %s has guaranteed profit: %f\n", e.URL, e.LeastProfit)
+			}
+		}
+	}
+
+	return Message
 }
 
 func main() {
@@ -207,57 +261,14 @@ func main() {
 		neg_risk = append(neg_risk, nr)
 	}
 
-	var Message string
 	// save least profit per url if there was profit
 	// send notif if diff from last profit it >20% and last profit was positive or current is pos
 
 	// check if a gob file exists if it does load
 
-	var compare []NegRiskData
-	GobExists := false
-	if fileExists("neg_risk.gob") {
-		GobExists = true
-		file, err := os.Open("neg_risk.gob")
-		if err != nil {
-			log.Printf("Failed to open file: %v", err)
-		}
-		defer file.Close()
+	Message := GetMessageFromData(neg_risk)
 
-		// Create a new gob decoder.
-		decoder := gob.NewDecoder(file)
-
-		// Create a variable to hold the decoded data.
-
-		// Decode the data into the variable.
-		if err := decoder.Decode(&compare); err != nil {
-			log.Printf("Failed to decode: %v", err)
-			GobExists = false // failed to read gob
-		}
-	}
-
-	for i, e := range neg_risk {
-		fmt.Println(e)
-		if e.LeastProfit > 0 {
-			// URL: has guaranteed profit:
-			if !GobExists {
-				Message += fmt.Sprintf("URL: %s has guaranteed profit: %f\n", e.URL, e.LeastProfit)
-			} else if e.LeastProfit > compare[i].LeastProfit*1.2 || e.LeastProfit < compare[i].LeastProfit*0.8 {
-				Message += fmt.Sprintf("URL: %s has guaranteed profit: %f\n", e.URL, e.LeastProfit)
-			}
-		}
-	}
-
-	url := "https://ntfy.sh/predictitjohn"
-
-	if Message != "" {
-		response, err := postDataToURL(url, Message)
-		if err != nil {
-			fmt.Printf("Error posting data: %s\n", err)
-			return
-		}
-
-		fmt.Printf("Response from server: %s\n", response)
-	}
+	PostMessageToNtfy(Message)
 
 	// Open a file for writing.
 	file, err := os.Create("neg_risk.gob")
