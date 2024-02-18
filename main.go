@@ -50,7 +50,6 @@ type NegRiskData struct {
 	LeastProfit    float64
 	MaxProfit      float64
 	URL            string
-	Populated      bool
 }
 
 func get_json_response(url string) ([]byte, error) {
@@ -220,7 +219,7 @@ func main() {
 		GobExists = true
 		file, err := os.Open("neg_risk.gob")
 		if err != nil {
-			log.Fatalf("Failed to open file: %v", err)
+			log.Printf("Failed to open file: %v", err)
 		}
 		defer file.Close()
 
@@ -231,7 +230,8 @@ func main() {
 
 		// Decode the data into the variable.
 		if err := decoder.Decode(&compare); err != nil {
-			log.Fatalf("Failed to decode: %v", err)
+			log.Printf("Failed to decode: %v", err)
+			GobExists = false // failed to read gob
 		}
 	}
 
