@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -134,6 +135,34 @@ func go_get_neg_risk(market Market, wg *sync.WaitGroup, resultArr []NegRiskData,
 	resultArr[index] = GetNegativeRisk(market)
 }
 
+// postDataToURL posts string data to a specified URL and returns the response
+func postDataToURL(url string, data string) (string, error) {
+	// Create a new HTTP request. Use strings.NewReader to convert the string to an io.Reader
+	req, err := http.NewRequest("POST", url, strings.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+
+	// Optionally, you can set the Content-Type header if needed (e.g., for plain text, use "text/plain")
+	// req.Header.Set("Content-Type", "text/plain")
+
+	// Create an HTTP client and execute the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
+}
+
 func main() {
 
 	var wg sync.WaitGroup
@@ -163,7 +192,22 @@ func main() {
 		neg_risk = append(neg_risk, nr)
 	}
 
+	var Message string
+	// save least profit per url if there was profit
 	for _, e := range neg_risk {
 		fmt.Println(e)
+		if e.LeastProfit > 0 {
+			// URL: has guaranteed profit:
+			Message += fmt.Sprintf("URL: %s has guaranteed profit: %f\n", e.URL, e.LeastProfit)
+		}
 	}
+
+	url := "https://ntfy.sh/predictitjohn"
+	response, err := postDataToURL(url, Message)
+	if err != nil {
+		fmt.Printf("Error posting data: %s\n", err)
+		return
+	}
+
+	fmt.Printf("Response from server: %s\n", response)
 }
