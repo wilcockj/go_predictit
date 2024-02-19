@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -203,11 +204,16 @@ func SaveNegRiskToGob(neg_risk []NegRiskData) {
 
 func main() {
 
+	nonotifyPtr := flag.Bool("nonotify", false, "controls whether notifications will be sent to ntfy")
+	flag.Parse()
+
 	neg_risk := GetNegRiskFromPredictIt()
 
 	Message := GetMessageFromData(neg_risk)
 
-	PostMessageToNtfy(Message)
+	if *nonotifyPtr {
+		PostMessageToNtfy(Message)
+	}
 
 	SaveNegRiskToGob(neg_risk)
 }
