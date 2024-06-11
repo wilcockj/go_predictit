@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NegRisk Data</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>NegRisk Data</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Contracts To Buy</th>
+                <th>Lowest No</th>
+                <th>Highest No</th>
+                <th>Neg Risk</th>
+                <th>Least Profit</th>
+                <th>Max Profit</th>
+                <th>URL</th>
+            </tr>
+        </thead>
+        <tbody id="negrisk-table-body">
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchNegRiskData() {
+            try {
+                const response = await fetch('/api/negrisk');
+                const data = await response.json();
+                console.log(data)
+
+                const tableBody = document.getElementById('negrisk-table-body');
+                tableBody.innerHTML = '';
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${item.ContractsToBuy}</td>
+                        <td>${item.LowestNo}</td>
+                        <td>${item.HighestNo}</td>
+                        <td>${item.NegRisk}</td>
+                        <td>${item.LeastProfit}</td>
+                        <td>${item.MaxProfit}</td>
+                        <td><a href="${item.URL}" target="_blank">Link</a></td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Fetch data initially
+        fetchNegRiskData();
+
+        // Fetch data every 10 seconds
+        setInterval(fetchNegRiskData, 10000);
+    </script>
+</body>
+</html>
+

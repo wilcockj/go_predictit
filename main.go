@@ -12,9 +12,17 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 const MinPercentChange = 0.02
+
+var (
+	cache           []NegRiskData
+	cacheMutex      sync.Mutex
+	cacheLastUpdate time.Time
+	cacheDuration   = 120 * time.Second
+)
 
 func get_json_response(url string) ([]byte, error) {
 	// Create a new request using http
@@ -202,6 +210,29 @@ func SaveNegRiskToGob(neg_risk []NegRiskData) {
 
 }
 
+func updateCache() {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	cache = GetNegRiskFromPredictIt()
+	cacheLastUpdate = time.Now()
+}
+
+func updateCachePeriodically() {
+	for {
+		updateCache()
+		time.Sleep(cacheDuration)
+	}
+}
+
+func NegRiskHandler(w http.ResponseWriter, r *http.Request) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(cache)
+}
+
 func main() {
 
 	nonotifyPtr := flag.Bool("nonotify", false, "controls whether notifications will be sent to ntfy")
@@ -216,4 +247,13 @@ func main() {
 	}
 
 	SaveNegRiskToGob(neg_risk)
+
+	go updateCachePeriodically()
+
+	http.HandleFunc("/api/negrisk", NegRiskHandler)
+	// Serve static files from the "static" directory
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/", fs)
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
