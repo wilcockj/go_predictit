@@ -37,7 +37,7 @@
     <script>
         async function fetchNegRiskData() {
             try {
-                const response = await fetch('/api/negrisk');
+                const response = await fetch('./api/negrisk');
                 const data = await response.json();
                 console.log(data)
 
